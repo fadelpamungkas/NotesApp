@@ -1,7 +1,13 @@
 package entity;
 
+import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import db.DatabaseContract;
+
+import static db.DatabaseContract.*;
+import static db.DatabaseContract.NoteColumns.*;
 
 public class Note implements Parcelable {
     private int id;
@@ -72,5 +78,12 @@ public class Note implements Parcelable {
         dest.writeString(title);
         dest.writeString(description);
         dest.writeString(date);
+    }
+
+    public Note(Cursor cursor){
+        this.id = getColumnInt(cursor, _ID);
+        this.title = getColumnString(cursor, NoteColumns.TITLE);
+        this.description = getColumnString(cursor, NoteColumns.DESCRIPTION);
+        this.date = getColumnString(cursor, NoteColumns.DATE);
     }
 }

@@ -10,8 +10,11 @@ import java.util.ArrayList;
 
 import entity.Note;
 
+import static db.DatabaseContract.TABLE_NOTE;
+import static db.DatabaseContract.NoteColumns.*;
+
 public class NoteHelper {
-    private static String DATABASE_TABLE = DatabaseHelper.TABLE_NAME;
+    private static String DATABASE_TABLE = TABLE_NOTE;
     private Context context;
     private DatabaseHelper databaseHelper;
     private SQLiteDatabase database;
@@ -30,70 +33,26 @@ public class NoteHelper {
         databaseHelper.close();
     }
 
-    public Cursor searchQuery(String title){
-        return database.rawQuery("SELECT * FROM " + DATABASE_TABLE +
-                " WHERE " + DatabaseHelper.FIELD_TITLE +
-                " LIKE '%" + title + "%'", null);
-    }
-
-    public ArrayList<Note> getSearchResult(String keyword){
+    public ArrayList<Note> query(){
         ArrayList<Note> arrayList = new ArrayList<Note>();
-        Cursor cursor = searchQuery(keyword);
+        Cursor cursor = database.query(DATABASE_TABLE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                _ID + " DESC",
+                null);
         cursor.moveToFirst();
         Note note;
         if(cursor.getCount() > 0){
             do {
                 note = new Note();
 
-                note.setId(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_ID)));
-                note.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_TITLE)));
-                note.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_DESCRIPTION)));
-                note.setDate(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_DATE)));
-
-                arrayList.add(note);
-                cursor.moveToNext();
-            } while (!cursor.isAfterLast());
-        }
-
-        cursor.close();
-        return arrayList;
-    }
-
-    public String getData(String word){
-        String result = "";
-        Cursor cursor = searchQuery(word);
-        cursor.moveToFirst();
-        if(cursor.getCount() > 0){
-            result = cursor.getString(2);
-
-            for(; !cursor.isAfterLast(); cursor.moveToNext()){
-                result = cursor.getString(2);
-            }
-        }
-
-        cursor.close();
-        return result;
-    }
-
-    public Cursor queryAllData(){
-        return database.rawQuery("SELECT * FROM " + DATABASE_TABLE +
-                " ORDER BY " + DatabaseHelper.FIELD_ID +
-                " DESC", null);
-    }
-
-    public ArrayList<Note> getAlLData(){
-        ArrayList<Note> arrayList = new ArrayList<Note>();
-        Cursor cursor = queryAllData();
-        cursor.moveToFirst();
-        Note note;
-        if(cursor.getCount() > 0){
-            do {
-                note = new Note();
-
-                note.setId(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_ID)));
-                note.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_TITLE)));
-                note.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_DESCRIPTION)));
-                note.setDate(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.FIELD_DATE)));
+                note.setId(cursor.getInt(cursor.getColumnIndexOrThrow(_ID)));
+                note.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(TITLE)));
+                note.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(DESCRIPTION)));
+                note.setDate(cursor.getString(cursor.getColumnIndexOrThrow(DATE)));
 
                 arrayList.add(note);
                 cursor.moveToNext();
@@ -106,21 +65,54 @@ public class NoteHelper {
 
     public long insert(Note note){
         ContentValues initialValues = new ContentValues();
-        initialValues.put(DatabaseHelper.FIELD_TITLE, note.getTitle());
-        initialValues.put(DatabaseHelper.FIELD_DESCRIPTION, note.getDescription());
-        initialValues.put(DatabaseHelper.FIELD_DATE, note.getDate());
+        initialValues.put(TITLE, note.getTitle());
+        initialValues.put(DESCRIPTION, note.getDescription());
+        initialValues.put(DATE, note.getDate());
         return database.insert(DATABASE_TABLE, null, initialValues);
     }
 
     public void update(Note note){
         ContentValues args = new ContentValues();
-        args.put(DatabaseHelper.FIELD_TITLE, note.getTitle());
-        args.put(DatabaseHelper.FIELD_DESCRIPTION, note.getDescription());
-        args.put(DatabaseHelper.FIELD_DATE, note.getDate());
-        database.update(DATABASE_TABLE, args, DatabaseHelper.FIELD_ID + "= '" + note.getId() + "'", null);
+        args.put(TITLE, note.getTitle());
+        args.put(DESCRIPTION, note.getDescription());
+        args.put(DATE, note.getDate());
+        database.update(DATABASE_TABLE, args, _ID + "= '" + note.getId() + "'", null);
     }
 
     public void delete(int id){
-        database.delete(DatabaseHelper.TABLE_NAME, DatabaseHelper.FIELD_ID + " ='" + id + "'", null);
+        database.delete(TABLE_NOTE, _ID + " ='" + id + "'", null);
+    }
+
+    public Cursor queryByIdProvider(String id){
+        return database.query(DATABASE_TABLE,
+                null,
+                _ID + " = ?",
+                new String[]{id},
+                null,
+                null,
+                null,
+                null);
+    }
+
+    public Cursor queryProvider(){
+        return database.query(DATABASE_TABLE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                _ID + " DESC");
+    }
+
+    public long insertProvider(ContentValues values){
+        return database.insert(DATABASE_TABLE, null, values);
+    }
+
+    public int updateProvider(String id, ContentValues values){
+        return database.update(DATABASE_TABLE, values, _ID + " = ?", new String[]{id});
+    }
+
+    public int deleteProvider(String id){
+        return database.delete(DATABASE_TABLE, _ID + " = ?", new String[]{id});
     }
 }

@@ -1,7 +1,10 @@
 package com.del.mynotesapp;
 
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.support.design.widget.TextInputEditText;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -20,6 +23,9 @@ import java.util.Date;
 import db.NoteHelper;
 import entity.Note;
 
+import static db.DatabaseContract.CONTENT_URI;
+import static db.DatabaseContract.NoteColumns.*;
+
 public class FormAddUpdateActivity extends AppCompatActivity implements View.OnClickListener {
     private EditText edtTitle, edtDescription;
     private Button btnSubmit;
@@ -37,7 +43,7 @@ public class FormAddUpdateActivity extends AppCompatActivity implements View.OnC
     private final int ALERT_DIALOG_DELETE = 20;
 
     private Note note;
-    private int position;
+    //private int position;
     private NoteHelper noteHelper;
 
     @Override
@@ -53,19 +59,26 @@ public class FormAddUpdateActivity extends AppCompatActivity implements View.OnC
         noteHelper = new NoteHelper(this);
         noteHelper.open();
 
-        note = getIntent().getParcelableExtra(EXTRA_NOTE);
+        Uri uri = getIntent().getData();
 
-        if (note != null){
-            position = getIntent().getIntExtra(EXTRA_POSITION, 0);
-            isEdit = true;
+        if (uri != null){
+            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+
+            if (cursor != null){
+                if (cursor.moveToFirst()) note = new Note(cursor);
+                cursor.close();
+            }
         }
 
         String actionBarTitle = null;
         String btnTitle = null;
 
-        if(isEdit){
+        if(note != null){
+            isEdit = true;
+
             actionBarTitle = "Change";
             btnTitle = "Update";
+
             edtTitle.setText(note.getTitle());
             edtDescription.setText(note.getDescription());
         } else{
@@ -101,22 +114,19 @@ public class FormAddUpdateActivity extends AppCompatActivity implements View.OnC
             }
 
             if (!isEmpty){
-                Note newNote = new Note();
-                newNote.setTitle(title);
-                newNote.setDescription(description);
-
-                Intent intent = new Intent();
+                ContentValues values = new ContentValues();
+                values.put(TITLE, title);
+                values.put(DESCRIPTION, description);
 
                 if (isEdit){
-                    newNote.setDate(note.getDate());
-                    newNote.setId(note.getId());
-                    noteHelper.update(newNote);
-                    intent.putExtra(EXTRA_POSITION, position);
-                    setResult(RESULT_UPDATE, intent);
+                    getContentResolver().update(getIntent().getData(), values, null, null);
+
+                    setResult(RESULT_UPDATE);
                     finish();
                 } else{
-                    newNote.setDate(getCurrentDate());
-                    noteHelper.insert(newNote);
+                    values.put(DATE, getCurrentDate());
+
+                    getContentResolver().insert(CONTENT_URI, values);
 
                     setResult(RESULT_ADD);
                     finish();
@@ -177,10 +187,8 @@ public class FormAddUpdateActivity extends AppCompatActivity implements View.OnC
                         if (isDialogClose){
                             finish();
                         } else{
-                            noteHelper.delete(note.getId());
-                            Intent intent = new Intent();
-                            intent.putExtra(EXTRA_POSITION, position);
-                            setResult(RESULT_DELETE, intent);
+                            getContentResolver().delete(getIntent().getData(), null, null);
+                            setResult(RESULT_DELETE, null);
                             finish();
                         }
                     }
